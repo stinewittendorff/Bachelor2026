@@ -1,0 +1,63 @@
+{
+  "message": {
+    "catalog": {
+      "descriptor": {
+        "name": "Beckn Med Catalog"
+      },
+      "providers": [
+        {
+          "id": "apotek_01",
+          "descriptor": {
+            "name": "Københavns Apotek"
+          },
+          "locations": [
+            {
+              "id": "apotek_01_location",
+              "descriptor": {
+                "name": "Københavns Apotek"
+              }
+            }
+          ],
+          "items": [
+            {
+              "id": "1001",
+              "descriptor": {
+                "name": "Panodil 500 mg"
+              },
+              "price": {
+                "currency": "DKK",
+                "value": "39.95"
+              }
+            }
+          ]
+        },
+        {
+          "id": "apotek_02",
+          "descriptor": {
+            "name": "Nørrebro Apotek"
+          },
+          "locations": [
+            {
+              "id": "apotek_02_location",
+              "descriptor": {
+                "name": "Nørrebro Apotek"
+              }
+            }
+          ],
+          "items": [
+            {
+              "id": "1002",
+              "descriptor": {
+                "name": "Ipren 200 mg"
+              },
+              "price": {
+                "currency": "DKK",
+                "value": "29.95"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
