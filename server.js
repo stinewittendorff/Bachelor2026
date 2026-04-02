@@ -8,7 +8,7 @@ const PORT = 3009;
 app.use(express.json());
 
 function loadCatalog() {
-  const raw = fs.readFileSync(path.join(__dirname, "catalog.json"), "utf8");
+  const raw = fs.readFileSync(path.join(__dirname, "beckn-catalog.json"), "utf8");
   return JSON.parse(raw);
 }
 
