@@ -3,12 +3,12 @@ const fs = require("fs");
 const path = require("path");
 
 const app = express();
-const PORT = 3000;
+const PORT = 3009;
 
 app.use(express.json());
 
 function loadCatalog() {
-  const raw = fs.readFileSync(path.join(__dirname, "beckn-catalog.json"), "utf8");
+  const raw = fs.readFileSync(path.join(__dirname, "catalog.json"), "utf8");
   return JSON.parse(raw);
 }
 
@@ -39,5 +39,5 @@ app.post("/webhook", (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log('catalog service running on http://localhost:${PORT}');
+  console.log(`Catalog service running on http://localhost:${PORT}`);
 });
