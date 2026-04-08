@@ -20,17 +20,17 @@ app.post("/webhook", (req, res) => {
   const body = req.body || {};
   const action = body?.context?.action;
 
+  console.log("Webhook called");
+  console.log("Action:", action);
+  console.log("Body:", JSON.stringify(body, null, 2));
+
   if (action === "search") {
     const catalog = loadCatalog();
 
-    return res.json({
-      context: {
-        ...body.context,
-        action: "on_search",
-        timestamp: new Date().toISOString()
-      },
-      ...catalog
-    });
+    console.log("Returning catalog from webhook");
+    console.log(JSON.stringify(catalog.message, null, 2));
+
+    return res.json(catalog.message);
   }
 
   return res.status(400).json({
