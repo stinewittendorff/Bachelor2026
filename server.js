@@ -25,13 +25,42 @@ app.post("/webhook", (req, res) => {
   console.log("Body:", JSON.stringify(body, null, 2));
 
   if (action === "search") {
-    const catalog = loadCatalog();
+  const catalog = loadCatalog();
 
-    console.log("Returning catalog from webhook");
-    console.log(JSON.stringify(catalog.message, null, 2));
+  const response = {
+    context: {
+      domain: body?.context?.domain || "retail:1.1.0",
+      location: {
+        city: {
+          code: body?.context?.city || "std:080"
+        },
+        country: {
+          code: body?.context?.country || "IND"
+        }
+      },
+      action: "on_search",
+      core_version: body?.context?.core_version || "1.1.0",
+      version: body?.context?.version || "1.1.0",
+      bap_id: body?.context?.bap_id,
+      bap_uri: body?.context?.bap_uri,
+      bpp_id: body?.context?.bpp_id,
+      bpp_uri: body?.context?.bpp_uri,
+      transaction_id: body?.context?.transaction_id,
+      message_id: body?.context?.message_id,
+      timestamp: new Date().toISOString(),
+      ttl: body?.context?.ttl || "PT10M"
+    },
+    message: {
+      catalog: catalog.message.catalog
+    }
+  };
+  console.log("Returning response from webhook");
+  console.log(JSON.stringify(response, null, 2));
 
-    return res.json(catalog.message);
-  }
+  
+
+  return res.json(response);
+}
 
   return res.status(400).json({
     error: `Unsupported action: ${action}`
