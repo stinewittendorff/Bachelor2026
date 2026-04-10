@@ -7,6 +7,8 @@ const PORT = 3009;
 
 app.use(express.json());
 
+app.use(express.static(path.join(__dirname, "public")));
+
 function loadCatalog() {
   const raw = fs.readFileSync(path.join(__dirname, "beckn-catalog.json"), "utf8");
   return JSON.parse(raw);
@@ -15,6 +17,36 @@ function loadCatalog() {
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
+
+// added search endpoint for the UI
+app.get("/search", (req, res) => {
+  const query = (req.query.q || "").toLowerCase();
+  const catalog = loadCatalog();
+  const providers = catalog.message.catalog.providers;
+
+  const results = [];
+
+  for (const provider of providers) {
+    for (const item of provider.items) {
+      const medicine = {
+        id: item.id,
+        name: item.descriptor.name,
+        provider: provider.descriptor.name,
+        price: item.price.value,
+        currency: item.price.currency
+      };
+
+      if (
+        medicine.name.toLowerCase().includes(query) ||
+        medicine.provider.toLowerCase().includes(query)
+      ) {
+        results.push(medicine);
+      }
+    }
+  }
+  res.json(results);
+});
+
 
 app.post("/webhook", (req, res) => {
   const body = req.body || {};
