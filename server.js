@@ -18,7 +18,7 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-// added search endpoint for the UI
+// added search endpoint for the UI 
 app.get("/search", (req, res) => {
   const query = (req.query.q || "").toLowerCase();
   const catalog = loadCatalog();
@@ -30,10 +30,10 @@ app.get("/search", (req, res) => {
     for (const item of provider.items) {
       const medicine = {
         id: item.id,
-        name: item.descriptor.name,
-        provider: provider.descriptor.name,
-        price: item.price.value,
-        currency: item.price.currency
+        name: item.descriptor.name || "",
+        provider: provider.descriptor.name || "",
+        price: item.price.value || "",
+        currency: item.price.currency || ""
       };
 
       if (
@@ -52,7 +52,7 @@ app.post("/webhook", (req, res) => {
   const body = req.body || {};
   const action = body?.context?.action;
 
-  console.log("Webhook called");
+  console.log("Endpoint called");
   console.log("Action:", action);
   console.log("Body:", JSON.stringify(body, null, 2));
 
@@ -89,8 +89,6 @@ app.post("/webhook", (req, res) => {
   console.log("Returning response from webhook");
   console.log(JSON.stringify(response, null, 2));
 
-  
-
   return res.json(response);
 }
 
@@ -98,6 +96,7 @@ app.post("/webhook", (req, res) => {
     error: `Unsupported action: ${action}`
   });
 });
+
 
 app.listen(PORT, () => {
   console.log(`Catalog service running on http://localhost:${PORT}`);
