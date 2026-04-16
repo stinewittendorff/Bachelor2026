@@ -58,6 +58,35 @@ app.post("/webhook", (req, res) => {
 
   if (action === "search") {
   const catalog = loadCatalog();
+  const query =
+      body?.message?.intent?.item?.descriptor?.name?.toLowerCase() || "";
+
+    const filteredProviders = [];
+
+    for (const provider of catalog.message.catalog.providers || []) {
+      const matchingItems = [];
+
+      for (const item of provider.items || []) {
+        const itemName = item.descriptor?.name?.toLowerCase() || "";
+        const providerName = provider.descriptor?.name?.toLowerCase() || "";
+
+        if (
+          query === "" ||
+          itemName.includes(query) ||
+          providerName.includes(query)
+        ) {
+          matchingItems.push(item);
+        }
+      }
+
+      if (matchingItems.length > 0) {
+        filteredProviders.push({
+          ...provider,
+          items: matchingItems
+        });
+      }
+    }
+
 
   const response = {
     context: {
@@ -83,7 +112,10 @@ app.post("/webhook", (req, res) => {
       ttl: body?.context?.ttl || "PT10M"
     },
     message: {
-      catalog: catalog.message.catalog
+      catalog: {
+        ...catalog.message.catalog,
+        providers: filteredProviders
+      }
     }
   };
   console.log("Returning response from webhook");
