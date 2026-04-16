@@ -1,28 +1,17 @@
 {
   "message": {
     "catalog": {
-      "@context": {
-        "beckn": "https://schema.beckn.io/",
-        "schema": "https://schema.org/",
-        "name": "schema:name"
-      },
-      "@type": "beckn:Catalog",
-      "@id": "catalog:beckn-med",
       "descriptor": {
         "name": "Beckn Med Catalog"
       },
       "providers": [
         {
-          "@type": "beckn:Provider",
-          "@id": "provider:apotek_01",
           "id": "apotek_01",
           "descriptor": {
             "name": "Københavns Apotek"
           },
           "locations": [
             {
-              "@type": "beckn:Location",
-              "@id": "location:apotek_01_location",
               "id": "apotek_01_location",
               "descriptor": {
                 "name": "Københavns Apotek"
@@ -31,36 +20,24 @@
           ],
           "items": [
             {
-              "@type": "beckn:Item",
-              "@id": "item:1001",
               "id": "1001",
               "descriptor": {
                 "name": "Panodil 500 mg"
               },
               "price": {
-                "@type": "beckn:Price",
                 "currency": "DKK",
                 "value": "39.95"
-              },
-              "availability": {
-                "@type": "beckn:Availability",
-                "status": "in_stock",
-                "count": 12
               }
             }
           ]
         },
         {
-          "@type": "beckn:Provider",
-          "@id": "provider:apotek_02",
           "id": "apotek_02",
           "descriptor": {
             "name": "Nørrebro Apotek"
           },
           "locations": [
             {
-              "@type": "beckn:Location",
-              "@id": "location:apotek_02_location",
               "id": "apotek_02_location",
               "descriptor": {
                 "name": "Nørrebro Apotek"
@@ -69,21 +46,13 @@
           ],
           "items": [
             {
-              "@type": "beckn:Item",
-              "@id": "item:1002",
               "id": "1002",
               "descriptor": {
                 "name": "Ipren 200 mg"
               },
               "price": {
-                "@type": "beckn:Price",
                 "currency": "DKK",
                 "value": "29.95"
-              },
-              "availability": {
-                "@type": "beckn:Availability",
-                "status": "low_stock",
-                "count": 3
               }
             }
           ]
