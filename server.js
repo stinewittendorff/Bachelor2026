@@ -14,9 +14,7 @@ function loadCatalog() {
   return JSON.parse(raw);
 }
 
-// NYT:
-// Gemmer seneste request/response, så BPP UI'et kan vise,
-// hvad BPP sidst modtog fra BAP.
+// Gemmer seneste flow til UI
 let latestFlow = {
   action: null,
   request: null,
@@ -33,45 +31,11 @@ app.get("/catalog", (req, res) => {
   res.json(catalog);
 });
 
-
 app.get("/latest-flow", (req, res) => {
   res.json(latestFlow);
 });
 
-
-app.get("/search", (req, res) => {
-  const query = (req.query.q || "").toLowerCase();
-  const catalog = loadCatalog();
-  const providers = catalog.message.catalog.providers;
-
-  const results = [];
-
-  for (const provider of providers) {
-    for (const item of provider.items) {
-      const medicine = {
-        id: item.id,
-        name: item.descriptor?.name || "",
-        provider: provider.descriptor?.name || "",
-        providerId: provider.id,
-        location: provider.locations?.[0]?.descriptor?.name || "",
-        price: item.price?.value || "",
-        currency: item.price?.currency || "",
-        stockStatus: item.stock?.status || "unknown",
-        stockCount: item.stock?.count ?? 0
-      };
-
-      if (
-        medicine.name.toLowerCase().includes(query) ||
-        medicine.provider.toLowerCase().includes(query)
-      ) {
-        results.push(medicine);
-      }
-    }
-  }
-
-  res.json(results);
-});
-
+// WEBHOOK
 app.post("/webhook", (req, res) => {
   const body = req.body || {};
   const action = body?.context?.action;
@@ -80,6 +44,7 @@ app.post("/webhook", (req, res) => {
   console.log("Action:", action);
   console.log("Body:", JSON.stringify(body, null, 2));
 
+  // SEARCH
   if (action === "search") {
     const catalog = loadCatalog();
 
@@ -114,26 +79,9 @@ app.post("/webhook", (req, res) => {
 
     const response = {
       context: {
-        domain: body?.context?.domain || "retail:1.1.0",
-        location: {
-          city: {
-            code: body?.context?.city || "std:080"
-          },
-          country: {
-            code: body?.context?.country || "DNK"
-          }
-        },
+        ...body.context,
         action: "on_search",
-        core_version: body?.context?.core_version || "1.1.0",
-        version: body?.context?.version || "1.1.0",
-        bap_id: body?.context?.bap_id,
-        bap_uri: body?.context?.bap_uri,
-        bpp_id: body?.context?.bpp_id,
-        bpp_uri: body?.context?.bpp_uri,
-        transaction_id: body?.context?.transaction_id,
-        message_id: body?.context?.message_id,
-        timestamp: new Date().toISOString(),
-        ttl: body?.context?.ttl || "PT10M"
+        timestamp: new Date().toISOString()
       },
       message: {
         catalog: {
@@ -143,143 +91,143 @@ app.post("/webhook", (req, res) => {
       }
     };
 
-  
     latestFlow = {
       action: "search",
       request: body,
-      response: response,
+      response,
       timestamp: new Date().toISOString()
     };
-
-    console.log("Returning on_search response");
-    console.log(JSON.stringify(response, null, 2));
 
     return res.json(response);
   }
 
+  // SELECT
   if (action === "select") {
     const catalog = loadCatalog();
 
-    const selectedProviderId = body?.message?.order?.provider?.id;
-    const selectedItemId = body?.message?.order?.items?.[0]?.id;
+    const providerId = body?.message?.order?.provider?.id;
+    const itemId = body?.message?.order?.items?.[0]?.id;
 
-    if (!selectedProviderId || !selectedItemId) {
-      return res.status(400).json({
-        error: "Missing provider id or item id in select request",
-        expectedShape: {
-          message: {
-            order: {
-              provider: { id: "apotek_03" },
-              items: [{ id: "1004" }]
-            }
-          }
-        }
-      });
-    }
+    const providers = catalog.message.catalog.providers || [];
+    const provider = providers.find(p => p.id === providerId);
+    const item = provider?.items.find(i => i.id === itemId);
 
-    let selectedProvider = null;
-    let selectedItem = null;
-
-    for (const provider of catalog.message.catalog.providers || []) {
-      if (provider.id !== selectedProviderId) {
-        continue;
-      }
-
-      for (const item of provider.items || []) {
-        if (item.id === selectedItemId) {
-          selectedProvider = provider;
-          selectedItem = item;
-          break;
-        }
-      }
-
-      if (selectedProvider && selectedItem) {
-        break;
-      }
-    }
-
-    if (!selectedProvider || !selectedItem) {
+    if (!provider || !item) {
       return res.status(404).json({
-        error: "Selected provider or item not found",
-        providerId: selectedProviderId,
-        itemId: selectedItemId
+        error: "Selected provider or item not found"
       });
     }
-
-    const stockStatus = selectedItem.stock?.status || "unknown";
-    const stockCount = selectedItem.stock?.count ?? 0;
-    const isSelectable = stockStatus !== "out_of_stock" && stockCount > 0;
 
     const response = {
       context: {
-        domain: body?.context?.domain || "retail:1.1.0",
-        location: {
-          city: {
-            code: body?.context?.city || "std:080"
-          },
-          country: {
-            code: body?.context?.country || "DNK"
-          }
-        },
+        ...body.context,
         action: "on_select",
-        core_version: body?.context?.core_version || "1.1.0",
-        version: body?.context?.version || "1.1.0",
-        bap_id: body?.context?.bap_id,
-        bap_uri: body?.context?.bap_uri,
-        bpp_id: body?.context?.bpp_id,
-        bpp_uri: body?.context?.bpp_uri,
-        transaction_id: body?.context?.transaction_id,
-        message_id: body?.context?.message_id,
-        timestamp: new Date().toISOString(),
-        ttl: body?.context?.ttl || "PT10M"
+        timestamp: new Date().toISOString()
       },
       message: {
         order: {
           provider: {
-            id: selectedProvider.id,
-            descriptor: selectedProvider.descriptor,
-            locations: selectedProvider.locations
+            id: provider.id,
+            descriptor: provider.descriptor,
+            locations: provider.locations
           },
-          items: [
-            selectedItem
-          ],
+          items: [item],
           quote: {
-            price: {
-              currency: selectedItem.price?.currency || "DKK",
-              value: selectedItem.price?.value || "0.00"
-            },
-            breakup: [
-              {
-                title: selectedItem.descriptor?.name || "Selected item",
-                price: {
-                  currency: selectedItem.price?.currency || "DKK",
-                  value: selectedItem.price?.value || "0.00"
-                }
-              }
-            ]
+            price: item.price
           },
           selection_status: {
-            selectable: isSelectable,
-            stock_status: stockStatus,
-            stock_count: stockCount,
-            message: isSelectable
-              ? "Item can be selected"
-              : "Item is out of stock and cannot be selected"
+            selectable: item.stock?.status !== "out_of_stock",
+            message: "Item selected"
           }
         }
       }
     };
 
-    
     latestFlow = {
       action: "select",
       request: body,
-      response: response,
+      response,
       timestamp: new Date().toISOString()
     };
 
-    console.log("Returning on_select response");
-    console.log(JSON.stringify(response, null, 2));
+    return res.json(response);
+  }
+
+  // INIT
+  if (action === "init") {
+    const catalog = loadCatalog();
+    const order = body?.message?.order || {};
+
+    const providerId = order?.provider?.id;
+    const itemId = order?.items?.[0]?.id;
+    const quantity = order?.items?.[0]?.quantity?.count || 1;
+
+    const providers = catalog.message.catalog.providers || [];
+    const provider = providers.find(p => p.id === providerId);
+    const item = provider?.items.find(i => i.id === itemId);
+
+    if (!provider || !item) {
+      return res.status(404).json({
+        error: "Provider or item not found"
+      });
+    }
+
+    if (item?.stock?.status === "out_of_stock") {
+      return res.status(400).json({
+        error: "Item is out of stock"
+      });
+    }
+
+    const totalPrice = (Number(item.price.value) * quantity).toFixed(2);
+
+    const response = {
+      context: {
+        ...body.context,
+        action: "on_init",
+        timestamp: new Date().toISOString()
+      },
+      message: {
+        order: {
+          id: `draft-${Date.now()}`,
+          state: "Initialized",
+          provider: {
+            id: provider.id,
+            descriptor: provider.descriptor,
+            locations: provider.locations
+          },
+          items: [
+            {
+              id: item.id,
+              descriptor: item.descriptor,
+              quantity: {
+                count: quantity
+              },
+              price: item.price
+            }
+          ],
+          fulfillment: order.fulfillment || {
+            type: "Delivery"
+          },
+          payment: {
+            type: order?.payment?.type || "PRE-FULFILLMENT",
+            status: "NOT-PAID"
+          },
+          quote: {
+            price: {
+              currency: item.price.currency,
+              value: totalPrice
+            }
+          }
+        }
+      }
+    };
+
+    latestFlow = {
+      action: "init",
+      request: body,
+      response,
+      timestamp: new Date().toISOString()
+    };
 
     return res.json(response);
   }

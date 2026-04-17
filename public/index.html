@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>BAP · Find håndkøbsmedicin</title>
+
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -11,28 +13,54 @@
     <header class="page-header">
       <p class="eyebrow">BAP Client</p>
       <h1>Find håndkøbsmedicin</h1>
-      <p class="subtitle">Søg på tværs af apoteker i netværket</p>
+      <p class="subtitle">
+        Søg efter håndkøbsmedicin på tværs af apoteker.
+      </p>
     </header>
 
-    <section class="panel">
-      <div class="panel-header">
-        <div>
-          <h2>BAP · Brugergrænseflade</h2>
-          <p>Buyer-side indgang til Beckn-netværket</p>
+    <section class="bap-layout">
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Søg efter medicin</h2>
+            <p>BAP sender søgningen videre til BPP.</p>
+          </div>
+
+          <span class="role-badge">Buyer side</span>
         </div>
-        <span class="role-badge">Buyer side</span>
-      </div>
 
-      <div class="search-box">
-        <input
-          type="text"
-          id="searchInput"
-          placeholder="Søg fx Panodil eller Ipren"
-        />
-        <button id="searchBtn">Søg</button>
-      </div>
+        <div class="search-box">
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Søg fx Panodil eller Ipren"
+            autocomplete="off"
+          />
 
-      <section id="results" class="results-list"></section>
+          <button id="searchBtn">Søg</button>
+        </div>
+
+        <section class="results-section">
+          <h2>Søgeresultater</h2>
+
+          <section id="results" class="results-list">
+            <p>Ingen søgning endnu.</p>
+          </section>
+        </section>
+      </section>
+
+      <aside class="panel selected-panel">
+        <div class="panel-header">
+          <div>
+            <h2>Valgt produkt</h2>
+            <p>Her vises varen efter <code>select/on_select</code>.</p>
+          </div>
+        </div>
+
+        <div id="selectedItemCard">
+          <p>Ingen vare valgt endnu.</p>
+        </div>
+      </aside>
     </section>
   </main>
 
