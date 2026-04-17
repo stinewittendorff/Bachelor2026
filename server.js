@@ -3,8 +3,9 @@ const fs = require("fs");
 const path = require("path");
 
 const app = express();
-const PORT = 3009;
+const PORT = process.env.PORT || 3009;
 
+const HOST = "0.0.0.0";
 app.use(express.json());
 
 app.use(express.static(path.join(__dirname, "public")));
@@ -16,6 +17,11 @@ function loadCatalog() {
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
+});
+
+app.get("/catalog", (req, res) => {
+  const catalog = loadCatalog();
+  res.json(catalog);
 });
 
 // added search endpoint for the UI 
@@ -32,8 +38,13 @@ app.get("/search", (req, res) => {
         id: item.id,
         name: item.descriptor.name || "",
         provider: provider.descriptor.name || "",
+        location: provider.locations?.[0]?.descriptor?.name || "",
+
         price: item.price.value || "",
-        currency: item.price.currency || ""
+        currency: item.price.currency || "", 
+        
+        stockStatus: item.stock?.status || "unknown",
+        stockCount: item.stock?.count ?? 0
       };
 
       if (
@@ -96,7 +107,7 @@ app.post("/webhook", (req, res) => {
           code: body?.context?.city || "std:080"
         },
         country: {
-          code: body?.context?.country || "IND"
+          code: body?.context?.country || "DNK"
         }
       },
       action: "on_search",
@@ -129,7 +140,7 @@ app.post("/webhook", (req, res) => {
   });
 });
 
-
-app.listen(PORT, () => {
-  console.log(`Catalog service running on http://localhost:${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`Catalog service running on http://${HOST}:${PORT}`);
+  console.log(`Local access: http://localhost:${PORT}`);
 });

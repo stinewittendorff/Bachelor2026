@@ -8,13 +8,13 @@
         {
           "id": "apotek_01",
           "descriptor": {
-            "name": "Københavns Apotek"
+            "name": "København Steno Apotek"
           },
           "locations": [
             {
               "id": "apotek_01_location",
               "descriptor": {
-                "name": "Københavns Apotek"
+                "name": "Vesterbrogade 6C, 1620 København V"
               }
             }
           ],
@@ -27,6 +27,10 @@
               "price": {
                 "currency": "DKK",
                 "value": "39.95"
+              },
+              "stock": {
+                "status": "in_stock",
+                "count": 12
               }
             }
           ]
@@ -40,7 +44,7 @@
             {
               "id": "apotek_02_location",
               "descriptor": {
-                "name": "Nørrebro Apotek"
+                "name": "Nørrebrogade 8, 2200 København"
               }
             }
           ],
@@ -53,6 +57,98 @@
               "price": {
                 "currency": "DKK",
                 "value": "29.95"
+              },
+              "stock": {
+                "status": "low_stock",
+                "count": 3
+              }
+            }
+          ]
+        },
+        {
+          "id": "apotek_03",
+          "descriptor": {
+            "name": "Frederiksberg Apotek"
+          },
+          "locations": [
+            {
+              "id": "apotek_03_location",
+              "descriptor": {
+                "name": "Gl. Kongevej 162, 1850 Frederiksberg"
+              }
+            }
+          ],
+          "items": [
+            {
+              "id": "1003",
+              "descriptor": {
+                "name": "Panodil 500 mg"
+              },
+              "price": {
+                "currency": "DKK",
+                "value": "37.95"
+              },
+              "stock": {
+                "status": "in_stock",
+                "count": 20
+              }
+            },
+            {
+              "id": "1004",
+              "descriptor": {
+                "name": "Ipren 200 mg"
+              },
+              "price": {
+                "currency": "DKK",
+                "value": "27.95"
+              },
+              "stock": {
+                "status": "in_stock",
+                "count": 15
+              }
+            }
+          ]
+        },
+        {
+          "id": "apotek_04",
+          "descriptor": {
+            "name": "Østerbro Apotek"
+          },
+          "locations": [
+            {
+              "id": "apotek_04_location",
+              "descriptor": {
+                "name": "Østerbrogade 101, 2100 København Ø"
+              }
+            }
+          ],
+          "items": [
+            {
+              "id": "1005",
+              "descriptor": {
+                "name": "Panodil 500 mg"
+              },
+              "price": {
+                "currency": "DKK",
+                "value": "38.95"
+              },
+              "stock": {
+                "status": "out_of_stock",
+                "count": 0
+              }
+            },
+            {
+              "id": "1006",
+              "descriptor": {
+                "name": "Ipren 200 mg"
+              },
+              "price": {
+                "currency": "DKK",
+                "value": "28.95"
+              },
+              "stock": {
+                "status": "out_of_stock",
+                "count": 0
               }
             }
           ]

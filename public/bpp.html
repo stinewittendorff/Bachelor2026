@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BPP · Catalog Service</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="page">
+    <header class="page-header">
+      <p class="eyebrow">BPP Client</p>
+      <h1>BPP Catalog Service</h1>
+      <p class="subtitle">Provider-side visning af katalog, lagerstatus og responses</p>
+    </header>
+
+    <section class="dashboard-grid">
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Provider catalog</h2>
+            <p>Apoteker og produkter, som BPP kan returnere</p>
+          </div>
+          <span class="role-badge">Provider side</span>
+        </div>
+
+        <div id="catalogOverview" class="provider-list">
+          Loader katalog...
+        </div>
+      </section>
+
+      <aside class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Beckn-flow</h2>
+            <p>Teknisk overblik over BPP-rollen</p>
+          </div>
+        </div>
+
+        <div class="flow-card">
+          <h3>Latest search request</h3>
+          <pre id="latestRequest">Ingen request endnu</pre>
+        </div>
+
+        <div class="flow-card">
+          <h3>Latest matched items</h3>
+          <div id="latestMatches">Ingen matches endnu</div>
+        </div>
+
+        <div class="flow-card">
+          <h3>Latest on_search response</h3>
+          <pre id="latestResponse">Ingen response endnu</pre>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script src="bpp.js"></script>
+</body>
+</html>
