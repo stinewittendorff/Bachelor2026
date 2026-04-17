@@ -14,6 +14,16 @@ function loadCatalog() {
   return JSON.parse(raw);
 }
 
+// NYT:
+// Gemmer seneste request/response, så BPP UI'et kan vise,
+// hvad BPP sidst modtog fra BAP.
+let latestFlow = {
+  action: null,
+  request: null,
+  response: null,
+  timestamp: null
+};
+
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
@@ -21,6 +31,11 @@ app.get("/health", (req, res) => {
 app.get("/catalog", (req, res) => {
   const catalog = loadCatalog();
   res.json(catalog);
+});
+
+
+app.get("/latest-flow", (req, res) => {
+  res.json(latestFlow);
 });
 
 
@@ -37,7 +52,7 @@ app.get("/search", (req, res) => {
         id: item.id,
         name: item.descriptor?.name || "",
         provider: provider.descriptor?.name || "",
-        providerId: provider.id, 
+        providerId: provider.id,
         location: provider.locations?.[0]?.descriptor?.name || "",
         price: item.price?.value || "",
         currency: item.price?.currency || "",
@@ -128,6 +143,14 @@ app.post("/webhook", (req, res) => {
       }
     };
 
+  
+    latestFlow = {
+      action: "search",
+      request: body,
+      response: response,
+      timestamp: new Date().toISOString()
+    };
+
     console.log("Returning on_search response");
     console.log(JSON.stringify(response, null, 2));
 
@@ -183,7 +206,6 @@ app.post("/webhook", (req, res) => {
       });
     }
 
-    
     const stockStatus = selectedItem.stock?.status || "unknown";
     const stockCount = selectedItem.stock?.count ?? 0;
     const isSelectable = stockStatus !== "out_of_stock" && stockCount > 0;
@@ -221,8 +243,6 @@ app.post("/webhook", (req, res) => {
           items: [
             selectedItem
           ],
-
-          
           quote: {
             price: {
               currency: selectedItem.price?.currency || "DKK",
@@ -238,8 +258,6 @@ app.post("/webhook", (req, res) => {
               }
             ]
           },
-
-          
           selection_status: {
             selectable: isSelectable,
             stock_status: stockStatus,
@@ -250,6 +268,14 @@ app.post("/webhook", (req, res) => {
           }
         }
       }
+    };
+
+    
+    latestFlow = {
+      action: "select",
+      request: body,
+      response: response,
+      timestamp: new Date().toISOString()
     };
 
     console.log("Returning on_select response");
