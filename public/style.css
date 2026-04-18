@@ -238,3 +238,40 @@ pre {
     flex-direction: column;
   }
 }
+
+
+
+.order-button,
+.init-button,
+.confirm-button {
+  margin-top: 14px;
+  padding: 12px 18px;
+  font-size: 15px;
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  background: #2563eb;
+  color: white;
+  font-weight: 700;
+}
+
+.order-button:hover,
+.init-button:hover,
+.confirm-button:hover {
+  background: #1d4ed8;
+}
+
+.checkout-select {
+  display: block;
+  width: 100%;
+  margin: 8px 0 14px 0;
+  padding: 10px;
+  border: 1px solid #cbd2d9;
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+.confirmed-card {
+  border: 1px solid #d1fae5;
+  background: #f0fdf4;
+}

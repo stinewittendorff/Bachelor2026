@@ -199,6 +199,71 @@ app.post("/init", async (req, res) => {
   }
 });
 
+// Confirm
+app.post("/confirm", async (req, res) => {
+  const { providerId, itemId, quantity = 1 } = req.body || {};
+
+  if (!providerId || !itemId) {
+    return res.status(400).json({
+      error: "providerId and itemId are required"
+    });
+  }
+
+  const confirmPayload = {
+    context: {
+      action: "confirm",
+      domain: "retail:1.1.0",
+      bap_id: "onix-bap-client.beckn-med.dk",
+      bap_uri: "https://onix-bap-client.beckn-med.dk",
+      bpp_id: "onix-bpp-client.beckn-med.dk",
+      bpp_uri: "https://onix-bpp-client.beckn-med.dk",
+      transaction_id: `tx-confirm-${Date.now()}`,
+      message_id: `msg-confirm-${Date.now()}`
+    },
+    message: {
+      order: {
+        provider: {
+          id: providerId
+        },
+        items: [
+          {
+            id: itemId,
+            quantity: {
+              count: quantity
+            }
+          }
+        ],
+        fulfillment: {
+          type: "pickup"
+        },
+        payment: {
+          type: "PRE-FULFILLMENT"
+        }
+      }
+    }
+  };
+
+  try {
+    const bppResponse = await fetch(BPP_WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(confirmPayload)
+    });
+
+    const onConfirm = await bppResponse.json();
+    res.json(onConfirm);
+  } catch (error) {
+    console.error("BAP confirm failed:", error);
+    res.status(500).json({
+      error: "BAP could not complete confirm request",
+      details: error.message
+    });
+  }
+});
+
+
 app.listen(PORT, HOST, () => {
   console.log(`BAP service running on http://${HOST}:${PORT}`);
   console.log(`Local access: http://localhost:${PORT}`);

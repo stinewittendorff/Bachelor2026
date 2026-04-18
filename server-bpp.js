@@ -232,6 +232,91 @@ app.post("/webhook", (req, res) => {
     return res.json(response);
   }
 
+    // CONFIRM
+  if (action === "confirm") {
+    const catalog = loadCatalog();
+    const order = body?.message?.order || {};
+
+    const providerId = order?.provider?.id;
+    const itemId = order?.items?.[0]?.id;
+    const quantity = order?.items?.[0]?.quantity?.count || 1;
+
+    const providers = catalog.message.catalog.providers || [];
+    const provider = providers.find(p => p.id === providerId);
+    const item = provider?.items.find(i => i.id === itemId);
+
+    if (!provider || !item) {
+      return res.status(404).json({
+        error: "Provider or item not found"
+      });
+    }
+
+    if (item?.stock?.status === "out_of_stock") {
+      return res.status(400).json({
+        error: "Item is out of stock"
+      });
+    }
+
+    const totalPrice = (Number(item.price.value) * quantity).toFixed(2);
+
+    const response = {
+      context: {
+        ...body.context,
+        action: "on_confirm",
+        timestamp: new Date().toISOString()
+      },
+      message: {
+        order: {
+          id: `order-${Date.now()}`,
+          state: "CONFIRMED_PROTOTYPE_ONLY",
+          provider: {
+            id: provider.id,
+            descriptor: provider.descriptor,
+            locations: provider.locations
+          },
+          items: [
+            {
+              id: item.id,
+              descriptor: item.descriptor,
+              quantity: {
+                count: quantity
+              },
+              price: item.price,
+              stock: item.stock
+            }
+          ],
+          payment: {
+            type: order?.payment?.type || "PRE-FULFILLMENT",
+            status: "NOT-IMPLEMENTED"
+          },
+          fulfillment: order.fulfillment || {
+            type: "pickup",
+            state: "NOT-FULFILLED"
+          },
+          quote: {
+            price: {
+              currency: item.price.currency,
+              value: totalPrice
+            }
+          },
+          confirmation_status: {
+            confirmed: true,
+            message: "Prototype order confirmed"
+          }
+        }
+      }
+    };
+
+    latestFlow = {
+      action: "confirm",
+      request: body,
+      response,
+      timestamp: new Date().toISOString()
+    };
+
+    return res.json(response);
+  }
+
   return res.status(400).json({
     error: `Unsupported action: ${action}`
   });

@@ -24,6 +24,7 @@ function formatPaymentType(type) {
 
 function formatOrderState(state) {
   if (state === "Initialized") return "Initialiseret";
+  if (state === "CONFIRMED_PROTOTYPE_ONLY") return "Bekræftet i prototype";
   return state || "Ukendt";
 }
 
@@ -197,9 +198,63 @@ async function initMedicine(providerId, itemId) {
       <p><strong>Status:</strong> ${formatOrderState(order.state)}</p>
       <p><strong>Levering:</strong> ${formatFulfillmentType(order.fulfillment?.type)}</p>
       <p><strong>Betaling:</strong> ${formatPaymentType(order.payment?.type)}</p>
+
+      <button
+        class="confirm-button"
+        onclick="confirmMedicine('${provider.id}', '${item.id}')"
+      >
+        Bekræft ordre
+      </button>
     </div>
   `;
 }
+
+async function confirmMedicine(providerId, itemId) {
+  selectedItemCard.innerHTML = "<p>Bekræfter ordre...</p>";
+
+  const response = await fetch("/confirm", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      providerId,
+      itemId,
+      quantity: 1
+    })
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    selectedItemCard.innerHTML = `<p>Fejl: ${result.error}</p>`;
+    return;
+  }
+
+  const order = result.message?.order || result.order;
+  const provider = order.provider;
+  const item = order.items[0];
+
+  selectedItemCard.innerHTML = `
+    <div class="selected-card confirmed-card">
+      <span class="selected-label">Order confirmed</span>
+
+      <h3>${item.descriptor.name}</h3>
+
+      <p><strong>Apotek:</strong> ${provider.descriptor.name}</p>
+      <p><strong>Pris:</strong> ${order.quote?.price?.value ?? item.price?.value} ${order.quote?.price?.currency ?? item.price?.currency}</p>
+      <p><strong>Prototype order ID:</strong> ${order.id}</p>
+      <p><strong>Status:</strong> ${formatOrderState(order.state)}</p>
+      <p><strong>Levering:</strong> ${formatFulfillmentType(order.fulfillment?.type)}</p>
+      <p><strong>Betaling:</strong> Ikke implementeret</p>
+
+      <p><strong>Bekræftelse:</strong> ${
+        order.confirmation_status?.message ?? "Prototype order confirmed"
+      }</p>
+    </div>
+  `;
+}
+
 
 searchBtn.addEventListener("click", searchMedicines);
 
