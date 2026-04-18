@@ -45,7 +45,7 @@
 
           <section id="results" class="results-list">
             <p>Ingen søgning endnu.</p>
-          </section>ß
+          </section>
         </section>
       </section>
 
@@ -60,6 +60,17 @@
         <div id="selectedItemCard">
           <p>Ingen vare valgt endnu.</p>
         </div>
+
+          <div class="status-lookup">
+            <h3>Tjek ordrestatus</h3>
+            <input
+              type="text"
+              id="orderIdInput"
+              placeholder="Indtast ordre-ID"
+              autocomplete="off"
+            />
+            <button onclick="handleStatusLookup()">Hent status</button>
+          </div>
       </aside>
     </section>
   </main>

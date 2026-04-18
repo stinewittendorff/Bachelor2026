@@ -22,6 +22,8 @@ let latestFlow = {
   timestamp: null
 };
 
+const orders = new Map();
+
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
@@ -222,6 +224,8 @@ app.post("/webhook", (req, res) => {
       }
     };
 
+    orders.set(response.message.order.id, response.message.order);
+
     latestFlow = {
       action: "init",
       request: body,
@@ -291,7 +295,11 @@ app.post("/webhook", (req, res) => {
           },
           fulfillment: order.fulfillment || {
             type: "pickup",
-            state: "NOT-FULFILLED"
+            state: {
+              descriptor: {
+                name: "Order placed"
+              }
+            }
           },
           quote: {
             price: {
@@ -307,12 +315,83 @@ app.post("/webhook", (req, res) => {
       }
     };
 
+    orders.set(response.message.order.id, response.message.order);
+
     latestFlow = {
       action: "confirm",
       request: body,
       response,
       timestamp: new Date().toISOString()
     };
+
+    return res.json(response);
+  }
+
+  //STATUS
+  if (action === "status") {
+    const orderId = body?.message?.order?.id;
+    const existingOrder = orders.get(orderId);
+
+    if (!orderId) {
+      return res.status(400).json({
+        error: "Missing prototype order id in status request"
+      });
+    }
+
+    if (!existingOrder) {
+      return res.status(404).json({
+        error: "Prototype order not found",
+        orderId: orderId
+      });
+    }
+
+    let fulfillmentStateName = "Order placed";
+
+    if (existingOrder.fulfillment?.type === "Pickup") {
+      fulfillmentStateName = "Ready for pickup";
+    } else if (existingOrder.fulfillment?.type === "Delivery") {
+      // lidt variation for demoens skyld
+      const random = Math.random();
+
+      if (random < 0.5) {
+        fulfillmentStateName = "Packed";
+      } else {
+        fulfillmentStateName = "Out for delivery";
+      }
+    }
+
+    const updatedOrder = {
+      ...existingOrder,
+      fulfillment: {
+        ...existingOrder.fulfillment,
+        state: {
+          descriptor: {
+            name: fulfillmentStateName
+          }
+        }
+      }
+    };
+
+    const response = {
+      context: {
+        ...body.context,
+        action: "on_status",
+        timestamp: new Date().toISOString()
+      },
+      message: {
+        order: updatedOrder
+      }
+    };
+
+    latestFlow = {
+      action: "status",
+      request: body,
+      response: response,
+      timestamp: new Date().toISOString()
+    };
+
+    console.log("Returning on_status response");
+    console.log(JSON.stringify(response, null, 2));
 
     return res.json(response);
   }

@@ -28,6 +28,14 @@ function formatOrderState(state) {
   return state || "Ukendt";
 }
 
+function formatFulfillmentState(state) {
+  if (state === "Order placed") return "Ordre modtaget";
+  if (state === "Packed") return "Pakket";
+  if (state === "Out for delivery") return "På vej";
+  if (state === "Ready for pickup") return "Klar til afhentning";
+  return state || "Ukendt";
+}
+
 async function searchMedicines() {
   const query = searchInput.value.trim();
 
@@ -201,7 +209,7 @@ async function initMedicine(providerId, itemId) {
 
       <button
         class="confirm-button"
-        onclick="confirmMedicine('${provider.id}', '${item.id}')"
+        onclick="confirmMedicine('${provider.id}', '${item.id}', '${order.id}', '${order.fulfillment?.type || "Delivery"}', '${order.payment?.type || "PRE-FULFILLMENT"}')"
       >
         Bekræft ordre
       </button>
@@ -209,7 +217,7 @@ async function initMedicine(providerId, itemId) {
   `;
 }
 
-async function confirmMedicine(providerId, itemId) {
+async function confirmMedicine(providerId, itemId, orderId, fulfillmentType, paymentType) {
   selectedItemCard.innerHTML = "<p>Bekræfter ordre...</p>";
 
   const response = await fetch("/confirm", {
@@ -220,7 +228,14 @@ async function confirmMedicine(providerId, itemId) {
     body: JSON.stringify({
       providerId,
       itemId,
-      quantity: 1
+      orderId,
+      quantity: 1,
+      fulfillment: {
+        type: fulfillmentType
+      },
+      payment: {
+        type: paymentType
+      }
     })
   });
 
@@ -255,6 +270,60 @@ async function confirmMedicine(providerId, itemId) {
   `;
 }
 
+async function statusMedicine(orderId) {
+  selectedItemCard.innerHTML = "<p>Henter ordrestatus...</p>";
+
+  const response = await fetch("/status", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      orderId
+    })
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    selectedItemCard.innerHTML = `<p>Fejl: ${result.error}</p>`;
+    return;
+  }
+
+  const order = result.message?.order || result.order;
+  const provider = order.provider;
+  const item = order.items?.[0];
+  const fulfillmentState =
+    formatFulfillmentState(
+      order?.fulfillment?.state?.descriptor?.name
+    );
+
+  selectedItemCard.innerHTML = `
+    <div class="selected-card confirmed-card">
+      <span class="selected-label">Ordrestatus</span>
+
+      <h3>${item?.descriptor?.name || "Ukendt vare"}</h3>
+
+      <p><strong>Apotek:</strong> ${provider?.descriptor?.name || "Ukendt apotek"}</p>
+      <p><strong>Ordre-ID:</strong> ${order.id}</p>
+      <p><strong>Status:</strong> ${formatOrderState(order.state)}</p>
+      <p><strong>Levering:</strong> ${formatFulfillmentType(order.fulfillment?.type)}</p>
+      <p><strong>Fulfillment-status:</strong> ${fulfillmentState}</p>
+      <p><strong>Betaling:</strong> ${formatPaymentType(order.payment?.type)}</p>
+    </div>
+  `;
+}
+
+function handleStatusLookup() {
+  const orderId = document.getElementById("orderIdInput").value.trim();
+
+  if (!orderId) {
+    selectedItemCard.innerHTML = "<p>Indtast et ordre-ID.</p>";
+    return;
+  }
+
+  statusMedicine(orderId);
+}
 
 searchBtn.addEventListener("click", searchMedicines);
 

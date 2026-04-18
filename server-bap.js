@@ -5,6 +5,7 @@ const app = express();
 const PORT = process.env.PORT || 3009;
 const HOST = "0.0.0.0";
 
+//BAP sender requests videre til BPP
 const BPP_WEBHOOK_URL = "https://onix-bpp-client.beckn-med.dk/webhook";
 
 app.use(express.json());
@@ -14,7 +15,9 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok", role: "BAP" });
 });
 
+// ----------------------
 // SEARCH
+// ----------------------
 app.get("/search", async (req, res) => {
   const query = req.query.q || "";
 
@@ -80,7 +83,9 @@ app.get("/search", async (req, res) => {
   }
 });
 
+// ----------------------
 // SELECT
+// ----------------------
 app.post("/select", async (req, res) => {
   const { providerId, itemId } = req.body || {};
 
@@ -135,9 +140,11 @@ app.post("/select", async (req, res) => {
   }
 });
 
-// INIT
+// ----------------------
+// INIT (OPDATERET)
+// ----------------------
 app.post("/init", async (req, res) => {
-  const { providerId, itemId, quantity = 1 } = req.body || {};
+  const { providerId, itemId, quantity = 1, fulfillment, payment } = req.body || {};
 
   if (!providerId || !itemId) {
     return res.status(400).json({
@@ -169,11 +176,11 @@ app.post("/init", async (req, res) => {
             }
           }
         ],
-        fulfillment: {
+        fulfillment: fulfillment || {
           type: "Delivery"
         },
         payment: {
-          type: "PRE-FULFILLMENT"
+          type: payment?.type || "PRE-FULFILLMENT"
         }
       }
     }
@@ -201,7 +208,7 @@ app.post("/init", async (req, res) => {
 
 // Confirm
 app.post("/confirm", async (req, res) => {
-  const { providerId, itemId, quantity = 1 } = req.body || {};
+  const { providerId, itemId, quantity = 1, fulfillment, payment, orderId } = req.body || {};
 
   if (!providerId || !itemId) {
     return res.status(400).json({
@@ -222,6 +229,7 @@ app.post("/confirm", async (req, res) => {
     },
     message: {
       order: {
+        id: orderId,
         provider: {
           id: providerId
         },
@@ -233,11 +241,11 @@ app.post("/confirm", async (req, res) => {
             }
           }
         ],
-        fulfillment: {
-          type: "pickup"
+        fulfillment: fulfillment || {
+          type: "Pickup"
         },
         payment: {
-          type: "PRE-FULFILLMENT"
+          type: payment?.type || "PRE-FULFILLMENT"
         }
       }
     }
@@ -258,6 +266,54 @@ app.post("/confirm", async (req, res) => {
     console.error("BAP confirm failed:", error);
     res.status(500).json({
       error: "BAP could not complete confirm request",
+      details: error.message
+    });
+  }
+});
+
+// STATUS
+app.post("/status", async (req, res) => {
+  const { orderId } = req.body || {};
+
+  if (!orderId) {
+    return res.status(400).json({
+      error: "orderId is required"
+    });
+  }
+
+  const statusPayload = {
+    context: {
+      action: "status",
+      domain: "retail:1.1.0",
+      bap_id: "onix-bap-client.beckn-med.dk",
+      bap_uri: "https://onix-bap-client.beckn-med.dk",
+      bpp_id: "onix-bpp-client.beckn-med.dk",
+      bpp_uri: "https://onix-bpp-client.beckn-med.dk",
+      transaction_id: `tx-status-${Date.now()}`,
+      message_id: `msg-status-${Date.now()}`
+    },
+    message: {
+      order: {
+        id: orderId
+      }
+    }
+  };
+
+  try {
+    const bppResponse = await fetch(BPP_WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(statusPayload)
+    });
+
+    const onStatus = await bppResponse.json();
+    res.json(onStatus);
+  } catch (error) {
+    console.error("BAP status failed:", error);
+    res.status(500).json({
+      error: "BAP could not complete status request",
       details: error.message
     });
   }
