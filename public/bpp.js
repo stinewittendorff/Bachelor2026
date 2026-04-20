@@ -138,6 +138,23 @@ function renderLatestFlow(flow) {
     `;
   }
 
+  if (flow.action === "track") {
+    const order = flow.response?.message?.order;
+    const tracking = order?.tracking;
+
+    latestFlowSummary.innerHTML = `
+      <div class="flow-card">
+        <span class="flow-label">track</span>
+        <h3>BAP trackede ordre: ${order?.id ?? "Ukendt ordre"}</h3>
+        <p><strong>Track-status:</strong> ${tracking?.status ?? "Ukendt"}</p>
+        <p><strong>Besked:</strong> ${tracking?.message ?? "Ingen besked"}</p>
+        <p><strong>Lokation:</strong> ${tracking?.location?.descriptor?.name ?? "Ukendt lokation"}</p>
+        <p><strong>Status:</strong> on_track response sendt tilbage til BAP.</p>
+        <p><strong>Tidspunkt:</strong> ${flow.timestamp}</p>
+      </div>
+    `;
+  }
+
   latestRequest.textContent = JSON.stringify(flow.request, null, 2);
   latestResponse.textContent = JSON.stringify(flow.response, null, 2);
 }

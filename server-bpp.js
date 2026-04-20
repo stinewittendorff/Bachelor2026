@@ -294,7 +294,7 @@ app.post("/webhook", (req, res) => {
             status: "NOT-IMPLEMENTED"
           },
           fulfillment: order.fulfillment || {
-            type: "pickup",
+            type: "Pickup",
             state: {
               descriptor: {
                 name: "Order placed"
@@ -391,6 +391,77 @@ app.post("/webhook", (req, res) => {
     };
 
     console.log("Returning on_status response");
+    console.log(JSON.stringify(response, null, 2));
+
+    return res.json(response);
+  }
+
+  // TRACK
+  if (action === "track") {
+    const orderId = body?.message?.order?.id;
+    const existingOrder = orders.get(orderId);
+
+    if (!orderId) {
+      return res.status(400).json({
+        error: "Missing order id in track request"
+      });
+    }
+
+    if (!existingOrder) {
+      return res.status(404).json({
+        error: "Order not found",
+        orderId: orderId
+      });
+    }
+
+    let trackingStatus = "Order placed";
+    let trackingMessage = "Ordren er modtaget.";
+    let trackingLocation = null;
+
+    if (existingOrder.fulfillment?.type === "Pickup") {
+      trackingStatus = "Ready for pickup";
+      trackingMessage = "Din ordre er klar til afhentning på apoteket.";
+      trackingLocation = existingOrder.provider?.locations?.[0] || null;
+    } else if (existingOrder.fulfillment?.type === "Delivery") {
+      trackingStatus = "Out for delivery";
+      trackingMessage = "Din ordre er under levering.";
+      trackingLocation = existingOrder.provider?.locations?.[0];
+    }
+
+    const response = {
+      context: {
+        ...body.context,
+        action: "on_track",
+        timestamp: new Date().toISOString()
+      },
+      message: {
+        order: {
+          id: existingOrder.id,
+          fulfillment: {
+            ...existingOrder.fulfillment,
+            state: {
+              descriptor: {
+                name: trackingStatus
+              }
+            }
+          },
+          tracking: {
+            status: trackingStatus,
+            message: trackingMessage,
+            location: trackingLocation
+          }
+        }
+      }
+    };
+
+    latestFlow = {
+      action: "track",
+      request: body,
+      response: response,
+      timestamp: new Date().toISOString()
+    };
+
+    console.log("Returning on_track response");
     console.log(JSON.stringify(response, null, 2));
 
     return res.json(response);

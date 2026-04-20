@@ -242,7 +242,7 @@ app.post("/confirm", async (req, res) => {
           }
         ],
         fulfillment: fulfillment || {
-          type: "Pickup"
+          type: "Delivery"
         },
         payment: {
           type: payment?.type || "PRE-FULFILLMENT"
@@ -314,6 +314,54 @@ app.post("/status", async (req, res) => {
     console.error("BAP status failed:", error);
     res.status(500).json({
       error: "BAP could not complete status request",
+      details: error.message
+    });
+  }
+});
+
+// TRACK
+app.post("/track", async (req, res) => {
+  const { orderId } = req.body || {};
+
+  if (!orderId) {
+    return res.status(400).json({
+      error: "orderId is required"
+    });
+  }
+
+  const trackPayload = {
+    context: {
+      action: "track",
+      domain: "retail:1.1.0",
+      bap_id: "onix-bap-client.beckn-med.dk",
+      bap_uri: "https://onix-bap-client.beckn-med.dk",
+      bpp_id: "onix-bpp-client.beckn-med.dk",
+      bpp_uri: "https://onix-bpp-client.beckn-med.dk",
+      transaction_id: `tx-track-${Date.now()}`,
+      message_id: `msg-track-${Date.now()}`
+    },
+    message: {
+      order: {
+        id: orderId
+      }
+    }
+  };
+
+  try {
+    const bppResponse = await fetch(BPP_WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(trackPayload)
+    });
+
+    const onTrack = await bppResponse.json();
+    res.json(onTrack);
+  } catch (error) {
+    console.error("BAP track failed:", error);
+    res.status(500).json({
+      error: "BAP could not complete track request",
       details: error.message
     });
   }

@@ -37,6 +37,13 @@ function formatFulfillmentState(state) {
   return state || "Ukendt";
 }
 
+function formatTrackState(state) {
+  if (state === "Order placed") return "Ordre modtaget";
+  if (state === "Ready for pickup") return "Klar til afhentning";
+  if (state === "Out for delivery") return "På vej";
+  return state || "Ukendt";
+}
+
 async function searchMedicines() {
   const query = searchInput.value.trim();
 
@@ -319,6 +326,43 @@ async function statusMedicine(orderId) {
   `;
 }
 
+async function trackMedicine(orderId) {
+  orderStatusCard.innerHTML = "<h2>Ordrestatus</h2><p>Henter tracking...</p>";
+
+  const response = await fetch("/track", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      orderId
+    })
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    orderStatusCard.innerHTML = `<h2>Ordrestatus</h2><p>Fejl: ${result.error}</p>`;
+    return;
+  }
+
+  const order = result.message?.order || result.order;
+  const tracking = order.tracking || {};
+  const trackingState = formatTrackState(tracking.status);
+  const trackingLocation = tracking.location?.descriptor?.name || "Ukendt lokation";
+
+  orderStatusCard.innerHTML = `
+    <div class="selected-card confirmed-card">
+      <h2>Tracking</h2>
+
+      <p><strong>Ordre-ID:</strong> ${order.id}</p>
+      <p><strong>Track-status:</strong> ${trackingState}</p>
+      <p><strong>Besked:</strong> ${tracking.message || "Ingen tracking-besked."}</p>
+      <p><strong>Lokation:</strong> ${trackingLocation}</p>
+    </div>
+  `;
+}
+
 function handleStatusLookup() {
   const orderId = document.getElementById("orderIdInput").value.trim();
 
@@ -328,6 +372,17 @@ function handleStatusLookup() {
   }
 
   statusMedicine(orderId);
+}
+
+function handleTrackLookup() {
+  const orderId = document.getElementById("orderIdInput").value.trim();
+
+  if (!orderId) {
+    orderStatusCard.innerHTML = "<h2>Ordrestatus</h2><p>Indtast et ordre-ID.</p>";
+    return;
+  }
+
+  trackMedicine(orderId);
 }
 
 searchBtn.addEventListener("click", searchMedicines);
