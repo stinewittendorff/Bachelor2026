@@ -60,17 +60,30 @@
         <div id="selectedItemCard">
           <p>Ingen vare valgt endnu.</p>
         </div>
+      </aside>
 
-          <div class="status-lookup">
-            <h3>Tjek ordrestatus</h3>
-            <input
-              type="text"
-              id="orderIdInput"
-              placeholder="Indtast ordre-ID"
-              autocomplete="off"
-            />
-            <button onclick="handleStatusLookup()">Hent status</button>
+      <aside class="panel status-panel">
+        <div class="panel-header">
+          <div>
+            <h2>Ordrestatus</h2>
+            <p>Her vises fulfillment-status efter <code>status/on_status</code>.</p>
           </div>
+        </div>
+
+        <div id="orderStatusCard">
+          <p>Ingen status endnu.</p>
+        </div>
+
+        <div class="status-lookup">
+          <h3>Tjek ordrestatus</h3>
+          <input
+            type="text"
+            id="orderIdInput"
+            placeholder="Indtast ordre-ID"
+            autocomplete="off"
+          />
+          <button onclick="handleStatusLookup()">Hent status</button>
+        </div>
       </aside>
     </section>
   </main>

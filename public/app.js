@@ -2,6 +2,7 @@ const searchBtn = document.getElementById("searchBtn");
 const searchInput = document.getElementById("searchInput");
 const resultsContainer = document.getElementById("results");
 const selectedItemCard = document.getElementById("selectedItemCard");
+const orderStatusCard = document.getElementById("orderStatusCard");
 
 function formatStockStatus(status, count) {
   if (status === "in_stock") return `På lager · ${count} stk.`;
@@ -45,6 +46,7 @@ async function searchMedicines() {
   }
 
   selectedItemCard.innerHTML = "<p>Ingen vare valgt endnu.</p>";
+  orderStatusCard.innerHTML = "<h2>Ordrestatus</h2><p>Ingen status endnu.</p>";
   resultsContainer.innerHTML = "<p>Søger...</p>";
 
   const response = await fetch(`/search?q=${encodeURIComponent(query)}`);
@@ -80,6 +82,7 @@ async function searchMedicines() {
 
 async function selectMedicine(providerId, itemId) {
   selectedItemCard.innerHTML = "<p>Vælger produkt...</p>";
+  orderStatusCard.innerHTML = "<h2>Ordrestatus</h2><p>Ingen status endnu.</p>";
 
   const response = await fetch("/select", {
     method: "POST",
@@ -165,6 +168,7 @@ async function initMedicine(providerId, itemId) {
     document.getElementById("paymentType")?.value || "PRE-FULFILLMENT";
 
   selectedItemCard.innerHTML = "<p>Klargør ordre...</p>";
+  orderStatusCard.innerHTML = "<h2>Ordrestatus</h2><p>Ingen status endnu.</p>";
 
   const response = await fetch("/init", {
     method: "POST",
@@ -219,6 +223,7 @@ async function initMedicine(providerId, itemId) {
 
 async function confirmMedicine(providerId, itemId, orderId, fulfillmentType, paymentType) {
   selectedItemCard.innerHTML = "<p>Bekræfter ordre...</p>";
+  orderStatusCard.innerHTML = "<h2>Ordrestatus</h2><p>Ingen status endnu.</p>";
 
   const response = await fetch("/confirm", {
     method: "POST",
@@ -271,7 +276,7 @@ async function confirmMedicine(providerId, itemId, orderId, fulfillmentType, pay
 }
 
 async function statusMedicine(orderId) {
-  selectedItemCard.innerHTML = "<p>Henter ordrestatus...</p>";
+  orderStatusCard.innerHTML = "<h2>Ordrestatus</h2><p>Henter ordrestatus...</p>";
 
   const response = await fetch("/status", {
     method: "POST",
@@ -286,7 +291,7 @@ async function statusMedicine(orderId) {
   const result = await response.json();
 
   if (!response.ok) {
-    selectedItemCard.innerHTML = `<p>Fejl: ${result.error}</p>`;
+    orderStatusCard.innerHTML = `<h2>Ordrestatus</h2><p>Fejl: ${result.error}</p>`;
     return;
   }
 
@@ -298,9 +303,9 @@ async function statusMedicine(orderId) {
       order?.fulfillment?.state?.descriptor?.name
     );
 
-  selectedItemCard.innerHTML = `
+  orderStatusCard.innerHTML = `
     <div class="selected-card confirmed-card">
-      <span class="selected-label">Ordrestatus</span>
+      <h2>Ordrestatus</h2>
 
       <h3>${item?.descriptor?.name || "Ukendt vare"}</h3>
 
@@ -318,7 +323,7 @@ function handleStatusLookup() {
   const orderId = document.getElementById("orderIdInput").value.trim();
 
   if (!orderId) {
-    selectedItemCard.innerHTML = "<p>Indtast et ordre-ID.</p>";
+    orderStatusCard.innerHTML = "<h2>Ordrestatus</h2><p>Indtast et ordre-ID.</p>";
     return;
   }
 
