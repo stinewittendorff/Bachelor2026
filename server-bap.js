@@ -367,6 +367,54 @@ app.post("/track", async (req, res) => {
   }
 });
 
+// CANCEL
+app.post("/cancel", async (req, res) => {
+  const { orderId } = req.body || {};
+
+  if (!orderId) {
+    return res.status(400).json({
+      error: "orderId is required"
+    });
+  }
+
+  const cancelPayload = {
+    context: {
+      action: "cancel",
+      domain: "retail:1.1.0",
+      bap_id: "onix-bap-client.beckn-med.dk",
+      bap_uri: "https://onix-bap-client.beckn-med.dk",
+      bpp_id: "onix-bpp-client.beckn-med.dk",
+      bpp_uri: "https://onix-bpp-client.beckn-med.dk",
+      transaction_id: `tx-cancel-${Date.now()}`,
+      message_id: `msg-cancel-${Date.now()}`
+    },
+    message: {
+      order: {
+        id: orderId
+      }
+    }
+  };
+
+  try {
+    const bppResponse = await fetch(BPP_WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(cancelPayload)
+    });
+
+    const onCancel = await bppResponse.json();
+    res.json(onCancel);
+  } catch (error) {
+    console.error("BAP cancel failed:", error);
+    res.status(500).json({
+      error: "BAP could not complete cancel request",
+      details: error.message
+    });
+  }
+});
+
 
 app.listen(PORT, HOST, () => {
   console.log(`BAP service running on http://${HOST}:${PORT}`);

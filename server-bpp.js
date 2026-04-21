@@ -294,7 +294,7 @@ app.post("/webhook", (req, res) => {
             status: "NOT-IMPLEMENTED"
           },
           fulfillment: order.fulfillment || {
-            type: "Pickup",
+            type: "Delivery",
             state: {
               descriptor: {
                 name: "Order placed"
@@ -344,6 +344,40 @@ app.post("/webhook", (req, res) => {
         orderId: orderId
       });
     }
+
+    if (existingOrder.state === "CANCELLED") {
+      const response = {
+        context: {
+          ...body.context,
+          action: "on_status",
+          timestamp: new Date().toISOString()
+        },
+        message: {
+          order: {
+            ...existingOrder,
+            fulfillment: {
+              ...existingOrder.fulfillment,
+              state: {
+                descriptor: {
+                  name: "Cancelled"
+                }
+              }
+            },
+            status_message: "Ordren er annulleret"
+          }
+        }
+      };
+
+      latestFlow = {
+        action: "status",
+        request: body,
+        response: response,
+        timestamp: new Date().toISOString()
+      };
+
+      return res.json(response);
+    }
+
 
     let fulfillmentStateName = "Order placed";
 
@@ -414,6 +448,38 @@ app.post("/webhook", (req, res) => {
       });
     }
 
+  if (existingOrder.state === "CANCELLED") {
+    const response = {
+      context: {
+        ...body.context,
+        action: "on_track",
+        timestamp: new Date().toISOString()
+      },
+      message: {
+        order: {
+          id: existingOrder.id,
+          state: "CANCELLED",
+          tracking: {
+            status: "Cancelled",
+            message: "Ordren er annulleret"
+          }
+        }
+      }
+    };
+
+    latestFlow = {
+      action: "track",
+      request: body,
+      response: response,
+      timestamp: new Date().toISOString()
+    };
+
+    console.log("Returning on_track response for cancelled order");
+    console.log(JSON.stringify(response, null, 2));
+
+    return res.json(response);
+  }
+
     let trackingStatus = "Order placed";
     let trackingMessage = "Ordren er modtaget.";
     let trackingLocation = null;
@@ -423,10 +489,18 @@ app.post("/webhook", (req, res) => {
       trackingMessage = "Din ordre er klar til afhentning på apoteket.";
       trackingLocation = existingOrder.provider?.locations?.[0] || null;
     } else if (existingOrder.fulfillment?.type === "Delivery") {
-      trackingStatus = "Out for delivery";
-      trackingMessage = "Din ordre er under levering.";
-      trackingLocation = existingOrder.provider?.locations?.[0];
-    }
+        const random = Math.random();
+        //variation for demo 
+        if (random < 0.5) {
+          trackingStatus = "Packed";
+          trackingMessage = "Din ordre bliver pakket til levering.";
+        } else {
+          trackingStatus = "Out for delivery";
+          trackingMessage = "Din ordre er under levering.";
+        }
+
+        trackingLocation = existingOrder.provider?.locations?.[0];
+      }
 
     const response = {
       context: {
@@ -462,6 +536,58 @@ app.post("/webhook", (req, res) => {
     };
 
     console.log("Returning on_track response");
+    console.log(JSON.stringify(response, null, 2));
+
+    return res.json(response);
+  }
+  // CANCEL
+  if (action === "cancel") {
+    const orderId = body?.message?.order?.id;
+    const existingOrder = orders.get(orderId);
+
+    if (!orderId) {
+      return res.status(400).json({
+        error: "Missing order id in cancel request"
+      });
+    }
+
+    if (!existingOrder) {
+      return res.status(404).json({
+        error: "Order not found",
+        orderId: orderId
+      });
+    }
+
+    const cancelledOrder = {
+      ...existingOrder,
+      state: "CANCELLED",
+      cancellation_status: {
+        cancelled: true,
+        message: "Ordren er annulleret"
+      }
+    };
+
+    orders.set(orderId, cancelledOrder);
+
+    const response = {
+      context: {
+        ...body.context,
+        action: "on_cancel",
+        timestamp: new Date().toISOString()
+      },
+      message: {
+        order: cancelledOrder
+      }
+    };
+
+    latestFlow = {
+      action: "cancel",
+      request: body,
+      response: response,
+      timestamp: new Date().toISOString()
+    };
+
+    console.log("Returning on_cancel response");
     console.log(JSON.stringify(response, null, 2));
 
     return res.json(response);

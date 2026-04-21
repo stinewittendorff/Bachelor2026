@@ -26,6 +26,7 @@ function formatPaymentType(type) {
 function formatOrderState(state) {
   if (state === "Initialized") return "Initialiseret";
   if (state === "CONFIRMED_PROTOTYPE_ONLY") return "Bekræftet i prototype";
+  if (state === "CANCELLED") return "Annulleret";
   return state || "Ukendt";
 }
 
@@ -34,13 +35,16 @@ function formatFulfillmentState(state) {
   if (state === "Packed") return "Pakket";
   if (state === "Out for delivery") return "På vej";
   if (state === "Ready for pickup") return "Klar til afhentning";
+  if (state === "Cancelled") return "Annulleret";
   return state || "Ukendt";
 }
 
 function formatTrackState(state) {
   if (state === "Order placed") return "Ordre modtaget";
+  if (state === "Packed") return "Pakket";
   if (state === "Ready for pickup") return "Klar til afhentning";
   if (state === "Out for delivery") return "På vej";
+  if (state === "Cancelled") return "Annulleret";
   return state || "Ukendt";
 }
 
@@ -363,6 +367,39 @@ async function trackMedicine(orderId) {
   `;
 }
 
+async function cancelMedicine(orderId) {
+  orderStatusCard.innerHTML = "<h2>Ordrestatus</h2><p>Annullerer ordre...</p>";
+
+  const response = await fetch("/cancel", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      orderId
+    })
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    orderStatusCard.innerHTML = `<h2>Ordrestatus</h2><p>Fejl: ${result.error}</p>`;
+    return;
+  }
+
+  const order = result.message?.order || result.order;
+
+  orderStatusCard.innerHTML = `
+    <div class="selected-card confirmed-card">
+      <h2>Ordrestatus</h2>
+
+      <p><strong>Ordre-ID:</strong> ${order.id}</p>
+      <p><strong>Status:</strong> ${formatOrderState(order.state)}</p>
+      <p><strong>Annullering:</strong> ${order.cancellation_status?.message || "Ordren er annulleret."}</p>
+    </div>
+  `;
+}
+
 function handleStatusLookup() {
   const orderId = document.getElementById("orderIdInput").value.trim();
 
@@ -383,6 +420,17 @@ function handleTrackLookup() {
   }
 
   trackMedicine(orderId);
+}
+
+function handleCancelLookup() {
+  const orderId = document.getElementById("orderIdInput").value.trim();
+
+  if (!orderId) {
+    orderStatusCard.innerHTML = "<h2>Ordrestatus</h2><p>Indtast et ordre-ID.</p>";
+    return;
+  }
+
+  cancelMedicine(orderId);
 }
 
 searchBtn.addEventListener("click", searchMedicines);

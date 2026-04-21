@@ -155,6 +155,21 @@ function renderLatestFlow(flow) {
     `;
   }
 
+  if (flow.action === "cancel") {
+    const order = flow.response?.message?.order;
+
+    latestFlowSummary.innerHTML = `
+      <div class="flow-card">
+        <span class="flow-label">cancel</span>
+        <h3>BAP annullerede ordre: ${order?.id ?? "Ukendt ordre"}</h3>
+        <p><strong>Status:</strong> ${order?.state ?? "Ukendt"}</p>
+        <p><strong>Annullering:</strong> ${order?.cancellation_status?.message ?? "Ingen besked"}</p>
+        <p><strong>Status:</strong> on_cancel response sendt tilbage til BAP.</p>
+        <p><strong>Tidspunkt:</strong> ${flow.timestamp}</p>
+      </div>
+    `;
+  }
+
   latestRequest.textContent = JSON.stringify(flow.request, null, 2);
   latestResponse.textContent = JSON.stringify(flow.response, null, 2);
 }
