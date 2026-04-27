@@ -1,0 +1,422 @@
+const express = require("express");
+const path = require("path");
+
+const app = express();
+const PORT = process.env.PORT || 3009;
+const HOST = "0.0.0.0";
+
+//BAP sender requests videre til BPP
+const BPP_WEBHOOK_URL = "https://onix-bpp-client.beckn-med.dk/webhook";
+
+app.use(express.json());
+app.use(express.static(path.join(__dirname, "public")));
+
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", role: "BAP" });
+});
+
+// ----------------------
+// SEARCH
+// ----------------------
+app.get("/search", async (req, res) => {
+  const query = req.query.q || "";
+
+  const searchPayload = {
+    context: {
+      action: "search",
+      domain: "retail:1.1.0",
+      bap_id: "onix-bap-client.beckn-med.dk",
+      bap_uri: "https://onix-bap-client.beckn-med.dk",
+      bpp_id: "onix-bpp-client.beckn-med.dk",
+      bpp_uri: "https://onix-bpp-client.beckn-med.dk",
+      transaction_id: `tx-search-${Date.now()}`,
+      message_id: `msg-search-${Date.now()}`
+    },
+    message: {
+      intent: {
+        item: {
+          descriptor: {
+            name: query
+          }
+        }
+      }
+    }
+  };
+
+  try {
+    const bppResponse = await fetch(BPP_WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(searchPayload)
+    });
+
+    const onSearch = await bppResponse.json();
+    const results = [];
+
+    for (const provider of onSearch.message?.catalog?.providers || []) {
+      const location = provider.locations?.[0]?.descriptor?.name || "";
+
+      for (const item of provider.items || []) {
+        results.push({
+          id: item.id,
+          providerId: provider.id,
+          name: item.descriptor?.name || "",
+          provider: provider.descriptor?.name || "",
+          location,
+          price: item.price?.value || "",
+          currency: item.price?.currency || "",
+          stockStatus: item.stock?.status || "unknown",
+          stockCount: item.stock?.count ?? 0
+        });
+      }
+    }
+
+    res.json(results);
+  } catch (error) {
+    console.error("BAP search failed:", error);
+    res.status(500).json({
+      error: "BAP could not complete search request",
+      details: error.message
+    });
+  }
+});
+
+// ----------------------
+// SELECT
+// ----------------------
+app.post("/select", async (req, res) => {
+  const { providerId, itemId } = req.body || {};
+
+  if (!providerId || !itemId) {
+    return res.status(400).json({
+      error: "providerId and itemId are required"
+    });
+  }
+
+  const selectPayload = {
+    context: {
+      action: "select",
+      domain: "retail:1.1.0",
+      bap_id: "onix-bap-client.beckn-med.dk",
+      bap_uri: "https://onix-bap-client.beckn-med.dk",
+      bpp_id: "onix-bpp-client.beckn-med.dk",
+      bpp_uri: "https://onix-bpp-client.beckn-med.dk",
+      transaction_id: `tx-select-${Date.now()}`,
+      message_id: `msg-select-${Date.now()}`
+    },
+    message: {
+      order: {
+        provider: {
+          id: providerId
+        },
+        items: [
+          {
+            id: itemId
+          }
+        ]
+      }
+    }
+  };
+
+  try {
+    const bppResponse = await fetch(BPP_WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(selectPayload)
+    });
+
+    const onSelect = await bppResponse.json();
+    res.json(onSelect);
+  } catch (error) {
+    console.error("BAP select failed:", error);
+    res.status(500).json({
+      error: "BAP could not complete select request",
+      details: error.message
+    });
+  }
+});
+
+// ----------------------
+// INIT (OPDATERET)
+// ----------------------
+app.post("/init", async (req, res) => {
+  const { providerId, itemId, quantity = 1, fulfillment, payment } = req.body || {};
+
+  if (!providerId || !itemId) {
+    return res.status(400).json({
+      error: "providerId and itemId are required"
+    });
+  }
+
+  const initPayload = {
+    context: {
+      action: "init",
+      domain: "retail:1.1.0",
+      bap_id: "onix-bap-client.beckn-med.dk",
+      bap_uri: "https://onix-bap-client.beckn-med.dk",
+      bpp_id: "onix-bpp-client.beckn-med.dk",
+      bpp_uri: "https://onix-bpp-client.beckn-med.dk",
+      transaction_id: `tx-init-${Date.now()}`,
+      message_id: `msg-init-${Date.now()}`
+    },
+    message: {
+      order: {
+        provider: {
+          id: providerId
+        },
+        items: [
+          {
+            id: itemId,
+            quantity: {
+              count: quantity
+            }
+          }
+        ],
+        fulfillment: fulfillment || {
+          type: "Delivery"
+        },
+        payment: {
+          type: payment?.type || "PRE-FULFILLMENT"
+        }
+      }
+    }
+  };
+
+  try {
+    const bppResponse = await fetch(BPP_WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(initPayload)
+    });
+
+    const onInit = await bppResponse.json();
+    res.json(onInit);
+  } catch (error) {
+    console.error("BAP init failed:", error);
+    res.status(500).json({
+      error: "BAP could not complete init request",
+      details: error.message
+    });
+  }
+});
+
+// Confirm
+app.post("/confirm", async (req, res) => {
+  const { providerId, itemId, quantity = 1, fulfillment, payment, orderId } = req.body || {};
+
+  if (!providerId || !itemId) {
+    return res.status(400).json({
+      error: "providerId and itemId are required"
+    });
+  }
+
+  const confirmPayload = {
+    context: {
+      action: "confirm",
+      domain: "retail:1.1.0",
+      bap_id: "onix-bap-client.beckn-med.dk",
+      bap_uri: "https://onix-bap-client.beckn-med.dk",
+      bpp_id: "onix-bpp-client.beckn-med.dk",
+      bpp_uri: "https://onix-bpp-client.beckn-med.dk",
+      transaction_id: `tx-confirm-${Date.now()}`,
+      message_id: `msg-confirm-${Date.now()}`
+    },
+    message: {
+      order: {
+        id: orderId,
+        provider: {
+          id: providerId
+        },
+        items: [
+          {
+            id: itemId,
+            quantity: {
+              count: quantity
+            }
+          }
+        ],
+        fulfillment: fulfillment || {
+          type: "Delivery"
+        },
+        payment: {
+          type: payment?.type || "PRE-FULFILLMENT"
+        }
+      }
+    }
+  };
+
+  try {
+    const bppResponse = await fetch(BPP_WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(confirmPayload)
+    });
+
+    const onConfirm = await bppResponse.json();
+    res.json(onConfirm);
+  } catch (error) {
+    console.error("BAP confirm failed:", error);
+    res.status(500).json({
+      error: "BAP could not complete confirm request",
+      details: error.message
+    });
+  }
+});
+
+// STATUS
+app.post("/status", async (req, res) => {
+  const { orderId } = req.body || {};
+
+  if (!orderId) {
+    return res.status(400).json({
+      error: "orderId is required"
+    });
+  }
+
+  const statusPayload = {
+    context: {
+      action: "status",
+      domain: "retail:1.1.0",
+      bap_id: "onix-bap-client.beckn-med.dk",
+      bap_uri: "https://onix-bap-client.beckn-med.dk",
+      bpp_id: "onix-bpp-client.beckn-med.dk",
+      bpp_uri: "https://onix-bpp-client.beckn-med.dk",
+      transaction_id: `tx-status-${Date.now()}`,
+      message_id: `msg-status-${Date.now()}`
+    },
+    message: {
+      order: {
+        id: orderId
+      }
+    }
+  };
+
+  try {
+    const bppResponse = await fetch(BPP_WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(statusPayload)
+    });
+
+    const onStatus = await bppResponse.json();
+    res.json(onStatus);
+  } catch (error) {
+    console.error("BAP status failed:", error);
+    res.status(500).json({
+      error: "BAP could not complete status request",
+      details: error.message
+    });
+  }
+});
+
+// TRACK
+app.post("/track", async (req, res) => {
+  const { orderId } = req.body || {};
+
+  if (!orderId) {
+    return res.status(400).json({
+      error: "orderId is required"
+    });
+  }
+
+  const trackPayload = {
+    context: {
+      action: "track",
+      domain: "retail:1.1.0",
+      bap_id: "onix-bap-client.beckn-med.dk",
+      bap_uri: "https://onix-bap-client.beckn-med.dk",
+      bpp_id: "onix-bpp-client.beckn-med.dk",
+      bpp_uri: "https://onix-bpp-client.beckn-med.dk",
+      transaction_id: `tx-track-${Date.now()}`,
+      message_id: `msg-track-${Date.now()}`
+    },
+    message: {
+      order: {
+        id: orderId
+      }
+    }
+  };
+
+  try {
+    const bppResponse = await fetch(BPP_WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(trackPayload)
+    });
+
+    const onTrack = await bppResponse.json();
+    res.json(onTrack);
+  } catch (error) {
+    console.error("BAP track failed:", error);
+    res.status(500).json({
+      error: "BAP could not complete track request",
+      details: error.message
+    });
+  }
+});
+
+// CANCEL
+app.post("/cancel", async (req, res) => {
+  const { orderId } = req.body || {};
+
+  if (!orderId) {
+    return res.status(400).json({
+      error: "orderId is required"
+    });
+  }
+
+  const cancelPayload = {
+    context: {
+      action: "cancel",
+      domain: "retail:1.1.0",
+      bap_id: "onix-bap-client.beckn-med.dk",
+      bap_uri: "https://onix-bap-client.beckn-med.dk",
+      bpp_id: "onix-bpp-client.beckn-med.dk",
+      bpp_uri: "https://onix-bpp-client.beckn-med.dk",
+      transaction_id: `tx-cancel-${Date.now()}`,
+      message_id: `msg-cancel-${Date.now()}`
+    },
+    message: {
+      order: {
+        id: orderId
+      }
+    }
+  };
+
+  try {
+    const bppResponse = await fetch(BPP_WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(cancelPayload)
+    });
+
+    const onCancel = await bppResponse.json();
+    res.json(onCancel);
+  } catch (error) {
+    console.error("BAP cancel failed:", error);
+    res.status(500).json({
+      error: "BAP could not complete cancel request",
+      details: error.message
+    });
+  }
+});
+
+
+app.listen(PORT, HOST, () => {
+  console.log(`BAP service running on http://${HOST}:${PORT}`);
+  console.log(`Local access: http://localhost:${PORT}`);
+});
